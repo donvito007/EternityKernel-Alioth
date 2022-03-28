@@ -1382,75 +1382,13 @@ static int lpm_cpuidle_select(struct cpuidle_driver *drv,
 
 static void update_ipi_history(int cpu)
 {
-	struct ipi_history *history = &per_cpu(cpu_ipi_history, cpu);
-	ktime_t now = ktime_get();
+	if (need_resched())
+		return idx;
 
-	history->interval[history->current_ptr] =
-			ktime_to_us(ktime_sub(now,
-			history->cpu_idle_resched_ts));
-	(history->current_ptr)++;
-	if (history->current_ptr >= MAXSAMPLES)
-		history->current_ptr = 0;
-	history->cpu_idle_resched_ts = now;
-}
+	cpuidle_set_idle_cpu(dev->cpu);
+	wfi();
+	cpuidle_clear_idle_cpu(dev->cpu);
 
-static void update_history(struct cpuidle_device *dev, int idx)
-{
-	struct lpm_history *history = &per_cpu(hist, dev->cpu);
-	uint32_t tmr = 0;
-	struct lpm_cpu *lpm_cpu = per_cpu(cpu_lpm, dev->cpu);
-
-	if (!lpm_prediction_enabled && !lpm_cpu->lpm_prediction)
-		return;
-
-	if (history->htmr_wkup) {
-		if (!history->hptr)
-			history->hptr = MAXSAMPLES-1;
-		else
-			history->hptr--;
-
-		history->resi[history->hptr] += dev->last_residency;
-		history->htmr_wkup = 0;
-		tmr = 1;
-	} else
-		history->resi[history->hptr] = dev->last_residency;
-
-	history->mode[history->hptr] = idx;
-
-	trace_cpu_pred_hist(history->mode[history->hptr],
-		history->resi[history->hptr], history->hptr, tmr);
-
-	if (history->nsamp < MAXSAMPLES)
-		history->nsamp++;
-
-	(history->hptr)++;
-	if (history->hptr >= MAXSAMPLES)
-		history->hptr = 0;
-}
-
-static int lpm_cpuidle_enter(struct cpuidle_device *dev,
-		struct cpuidle_driver *drv, int idx)
-{
-	if (!need_resched())
-		wfi();
-
-exit:
-	lpm_stats_cpu_exit(idx, 0, success);
-
-	cluster_unprepare(cpu->parent, cpumask, idx, true, 0, success);
-	cpu_unprepare(cpu, idx, true);
-	dev->last_residency = ktime_us_delta(ktime_get(), start);
-	update_history(dev, idx);
-	trace_cpu_idle_exit(idx, success);
-	if (lpm_prediction_enabled && cpu->lpm_prediction) {
-		histtimer_cancel();
-		clusttimer_cancel();
-	}
-	if (cpu->bias) {
-		biastimer_cancel();
-		cpu->bias = 0;
-	}
-	local_irq_enable();
 	return idx;
 }
 
