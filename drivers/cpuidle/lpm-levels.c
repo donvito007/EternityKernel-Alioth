@@ -1431,23 +1431,8 @@ static void update_history(struct cpuidle_device *dev, int idx)
 static int lpm_cpuidle_enter(struct cpuidle_device *dev,
 		struct cpuidle_driver *drv, int idx)
 {
-	struct lpm_cpu *cpu = per_cpu(cpu_lpm, dev->cpu);
-	bool success = false;
-	const struct cpumask *cpumask = get_cpu_mask(dev->cpu);
-	ktime_t start = ktime_get();
-
-	cpu_prepare(cpu, idx, true);
-	cluster_prepare(cpu->parent, cpumask, idx, true, 0);
-
-	trace_cpu_idle_enter(idx);
-	lpm_stats_cpu_enter(idx, 0);
-
-	if (need_resched())
-		goto exit;
-
-	cpuidle_set_idle_cpu(dev->cpu);
-	success = psci_enter_sleep(cpu, idx, true);
-	cpuidle_clear_idle_cpu(dev->cpu);
+	if (!need_resched())
+		wfi();
 
 exit:
 	lpm_stats_cpu_exit(idx, 0, success);
