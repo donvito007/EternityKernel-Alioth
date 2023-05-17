@@ -67,7 +67,7 @@ do { \
 } while (0)
 
 
-#define XIAOMI_ROI	0
+#define XIAOMI_ROI	1
 
 #if XIAOMI_ROI
 #define DIFF_SENSE_NODE 7
