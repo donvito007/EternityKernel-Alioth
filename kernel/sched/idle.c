@@ -190,12 +190,9 @@ static void cpuidle_idle_call(void)
 		/*
 		 * Ask the cpuidle framework to choose a convenient idle state.
 		 */
-		next_state = cpuidle_select(drv, dev, &stop_tick);
+		next_state = cpuidle_select(drv, dev);
 
-		if (stop_tick || tick_nohz_tick_stopped())
-			tick_nohz_idle_stop_tick();
-		else
-			tick_nohz_idle_retain_tick();
+		tick_nohz_idle_stop_tick();
 
 		rcu_idle_enter();
 
