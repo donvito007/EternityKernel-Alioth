@@ -1,0 +1,38 @@
+name: Update Android Kernel
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  create-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v2
+
+      - name: Create new branch
+        run: |
+          git checkout -b caf-update1
+
+  update-kernel:
+    runs-on: ubuntu-latest
+    needs: create-branch
+    steps:
+      - name: Clone latest Linux kernel source
+        uses: actions/checkout@v2
+        with:
+          repository: https://kernel.googlesource.com/pub/scm/linux/kernel/git/stable/linux.git
+          ref: linux-4.19.288
+
+      - name: Checkout new branch
+        uses: actions/checkout@v2
+        with:
+          repository: donvito007/EternityKernel-alioth
+          ref: caf-update1
+
+      - name: Merge Linux kernel changes
+        run: |
+          cd EternityKernel-alioth
+          git merge origin/linux-4.19.288
